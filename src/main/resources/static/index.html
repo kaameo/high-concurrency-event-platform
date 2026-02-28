@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Platform Console</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+    --text: #e1e4ed; --muted: #8b8fa3; --accent: #6c5ce7;
+    --green: #00b894; --red: #e17055; --yellow: #fdcb6e; --blue: #74b9ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono', 'Fira Code', monospace; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .header { padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header h1 span { color: var(--accent); }
+  .header-links a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 16px; transition: color 0.2s; }
+  .header-links a:hover { color: var(--accent); }
+
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: calc(100vh - 61px); }
+  .left { border-right: 1px solid var(--border); padding: 24px; overflow-y: auto; }
+  .right { padding: 24px; overflow-y: auto; background: var(--surface); }
+
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .left .card { background: var(--bg); }
+
+  .form-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .form-row label { font-size: 12px; color: var(--muted); min-width: 100px; }
+  .form-row input, .form-row select { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; color: var(--text); font-family: inherit; font-size: 13px; }
+  .left .form-row input { background: var(--bg); border-color: var(--border); }
+
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #5a4bd1; }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-green:hover { background: #00a381; }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-red:hover { background: #c9604a; }
+  .btn-blue { background: var(--blue); color: #1a1d27; }
+  .btn-blue:hover { background: #5aa8f0; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+  .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  #log { font-size: 12px; line-height: 1.6; max-height: calc(100vh - 160px); overflow-y: auto; }
+  .log-entry { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .log-time { color: var(--muted); }
+  .log-method { font-weight: 600; }
+  .log-method.POST { color: var(--yellow); }
+  .log-method.GET { color: var(--green); }
+  .log-status { font-weight: 600; padding: 1px 6px; border-radius: 3px; font-size: 11px; }
+  .log-status.s2xx { background: rgba(0,184,148,0.15); color: var(--green); }
+  .log-status.s4xx { background: rgba(225,112,85,0.15); color: var(--red); }
+  .log-status.s5xx { background: rgba(225,112,85,0.3); color: var(--red); }
+  .log-detail { color: var(--muted); font-size: 11px; margin-top: 2px; word-break: break-all; }
+
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 0.1s; width: 0%; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .left { border-right: none; border-bottom: 1px solid var(--border); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>Event Platform</span> Test Console</h1>
+  <div class="header-links">
+    <a href="/swagger-ui.html" target="_blank">Swagger</a>
+    <a href="http://localhost:3000" target="_blank">Grafana</a>
+    <a href="http://localhost:9091" target="_blank">Kafka UI</a>
+    <a href="http://localhost:9090" target="_blank">Prometheus</a>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="left">
+    <!-- System Status -->
+    <div class="section">
+      <div class="section-title">System Status</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value green" id="stat-health">--</div><div class="stat-label">Health</div></div>
+        <div class="stat-card"><div class="stat-value blue" id="stat-issued">--</div><div class="stat-label">Issued</div></div>
+        <div class="stat-card"><div class="stat-value yellow" id="stat-stock">--</div><div class="stat-label">Stock</div></div>
+      </div>
+    </div>
+
+    <!-- Coupon Issue -->
+    <div class="section">
+      <div class="section-title">Coupon Issue</div>
+      <div class="card">
+        <div class="form-row"><label>Event ID</label><input id="eventId" value="" placeholder="coupon event UUID"></div>
+        <div class="form-row"><label>User ID</label><input id="userId" type="number" value="1" min="1"></div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="issueCoupon()">Issue (Async)</button>
+          <button class="btn btn-blue" onclick="issueCouponSync()">Issue (Sync)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Issue -->
+    <div class="section">
+      <div class="section-title">Bulk Issue (Load Test)</div>
+      <div class="card">
+        <div class="form-row"><label>Count</label><input id="bulkCount" type="number" value="100" min="1" max="10000"></div>
+        <div class="form-row"><label>Concurrency</label><input id="bulkConcurrency" type="number" value="10" min="1" max="100"></div>
+        <div class="form-row"><label>User Range</label><input id="bulkUserStart" type="number" value="1" min="1" placeholder="Start"> <span style="color:var(--muted)">~</span> <input id="bulkUserEnd" type="number" value="10000" min="1" placeholder="End"></div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="bulkBtn" onclick="bulkIssue()">Start Bulk Issue</button>
+          <button class="btn btn-red btn-sm" id="bulkStopBtn" onclick="stopBulk()" disabled>Stop</button>
+        </div>
+        <div class="progress-bar" id="bulkProgress"><div class="progress-fill" id="bulkFill"></div></div>
+        <div style="margin-top:8px; font-size:12px; color:var(--muted)" id="bulkStats"></div>
+      </div>
+    </div>
+
+    <!-- Admin -->
+    <div class="section">
+      <div class="section-title">Admin</div>
+      <div class="card">
+        <div class="form-row"><label>Event ID</label><input id="adminEventId" value="" placeholder="coupon event UUID"></div>
+        <div class="btn-group">
+          <button class="btn btn-green" onclick="initStock()">Init Stock</button>
+          <button class="btn btn-blue btn-sm" onclick="getEventInfo()">Event Info</button>
+          <button class="btn btn-blue btn-sm" onclick="getStats()">Stats</button>
+          <button class="btn btn-blue btn-sm" onclick="getIssues()">Issues</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Request Lookup -->
+    <div class="section">
+      <div class="section-title">Request Lookup</div>
+      <div class="card">
+        <div class="form-row"><label>Request ID</label><input id="requestId" placeholder="request UUID"></div>
+        <div class="btn-group">
+          <button class="btn btn-blue btn-sm" onclick="getRequest()">Lookup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="section">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
+        Request Log
+        <button class="btn btn-sm" style="background:var(--border); color:var(--muted);" onclick="clearLog()">Clear</button>
+      </div>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let bulkAbort = null;
+
+function log(method, path, status, body, duration) {
+  const el = document.getElementById('log');
+  const time = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+  const cls = status < 300 ? 's2xx' : status < 500 ? 's4xx' : 's5xx';
+  const detail = typeof body === 'object' ? JSON.stringify(body) : body;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${time}</span> <span class="log-method ${method}">${method}</span> ${path} <span class="log-status ${cls}">${status}</span> <span style="color:var(--muted);font-size:11px">${duration}ms</span><div class="log-detail">${detail || ''}</div>`;
+  el.prepend(entry);
+}
+
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+async function api(method, path, body, headers = {}) {
+  const start = performance.now();
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json', ...headers } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API + path, opts);
+    const duration = Math.round(performance.now() - start);
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+    log(method, path, res.status, data, duration);
+    return { status: res.status, data };
+  } catch (e) {
+    const duration = Math.round(performance.now() - start);
+    log(method, path, 0, e.message, duration);
+    return { status: 0, data: null };
+  }
+}
+
+function uuid() {
+  return crypto.randomUUID();
+}
+
+async function issueCoupon() {
+  const eventId = document.getElementById('eventId').value;
+  const userId = parseInt(document.getElementById('userId').value);
+  await api('POST', '/api/v1/coupons/issue', { couponEventId: eventId, userId }, { 'Idempotency-Key': uuid() });
+}
+
+async function issueCouponSync() {
+  const eventId = document.getElementById('eventId').value;
+  const userId = parseInt(document.getElementById('userId').value);
+  await api('POST', '/api/v1/coupons/issue-sync', { couponEventId: eventId, userId }, { 'Idempotency-Key': uuid() });
+}
+
+async function initStock() {
+  const eventId = document.getElementById('adminEventId').value;
+  await api('POST', `/api/v1/admin/coupons/${eventId}/init-stock`);
+}
+
+async function getEventInfo() {
+  const eventId = document.getElementById('adminEventId').value;
+  await api('GET', `/api/v1/coupons/${eventId}`);
+}
+
+async function getStats() {
+  const eventId = document.getElementById('adminEventId').value;
+  await api('GET', `/api/v1/admin/coupons/${eventId}/stats`);
+}
+
+async function getIssues() {
+  const eventId = document.getElementById('adminEventId').value;
+  await api('GET', `/api/v1/admin/coupons/${eventId}/issues`);
+}
+
+async function getRequest() {
+  const requestId = document.getElementById('requestId').value;
+  await api('GET', `/api/v1/coupons/requests/${requestId}`);
+}
+
+let bulkRunning = false;
+async function bulkIssue() {
+  if (bulkRunning) return;
+  bulkRunning = true;
+  const eventId = document.getElementById('eventId').value;
+  const count = parseInt(document.getElementById('bulkCount').value);
+  const concurrency = parseInt(document.getElementById('bulkConcurrency').value);
+  const userStart = parseInt(document.getElementById('bulkUserStart').value);
+  const userEnd = parseInt(document.getElementById('bulkUserEnd').value);
+
+  document.getElementById('bulkBtn').disabled = true;
+  document.getElementById('bulkStopBtn').disabled = false;
+  document.getElementById('bulkProgress').style.display = 'block';
+
+  let completed = 0, success = 0, fail = 0, stopped = false;
+  const startTime = performance.now();
+  bulkAbort = () => { stopped = true; };
+
+  const update = () => {
+    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+    const rps = (completed / (elapsed || 1)).toFixed(0);
+    document.getElementById('bulkFill').style.width = `${(completed / count * 100)}%`;
+    document.getElementById('bulkStats').textContent = `${completed}/${count} | OK:${success} Fail:${fail} | ${elapsed}s | ~${rps} req/s`;
+  };
+
+  const worker = async () => {
+    while (completed < count && !stopped) {
+      const userId = Math.floor(Math.random() * (userEnd - userStart + 1)) + userStart;
+      const idx = completed++;
+      try {
+        const res = await fetch(API + '/api/v1/coupons/issue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': uuid() },
+          body: JSON.stringify({ couponEventId: eventId, userId })
+        });
+        if (res.status >= 200 && res.status < 300) success++; else fail++;
+      } catch { fail++; }
+      update();
+    }
+  };
+
+  const workers = Array.from({ length: Math.min(concurrency, count) }, () => worker());
+  await Promise.all(workers);
+
+  const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+  log('POST', `/bulk-issue x${completed}`, 200, `OK:${success} Fail:${fail} ${elapsed}s`, Math.round(performance.now() - startTime));
+
+  bulkRunning = false;
+  document.getElementById('bulkBtn').disabled = false;
+  document.getElementById('bulkStopBtn').disabled = true;
+}
+
+function stopBulk() {
+  if (bulkAbort) bulkAbort();
+}
+
+// Auto-refresh system status
+async function refreshStatus() {
+  try {
+    const res = await fetch(API + '/actuator/health');
+    const data = await res.json();
+    document.getElementById('stat-health').textContent = data.status || '--';
+    document.getElementById('stat-health').className = 'stat-value ' + (data.status === 'UP' ? 'green' : 'red');
+  } catch { document.getElementById('stat-health').textContent = 'DOWN'; document.getElementById('stat-health').className = 'stat-value red'; }
+
+  const eventId = document.getElementById('adminEventId').value || document.getElementById('eventId').value;
+  if (eventId) {
+    try {
+      const res = await fetch(API + `/api/v1/admin/coupons/${eventId}/stats`);
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('stat-issued').textContent = data.issuedCount ?? data.totalIssued ?? '--';
+        document.getElementById('stat-stock').textContent = data.remainingStock ?? data.stock ?? '--';
+      }
+    } catch {}
+  }
+}
+
+// Sync event IDs between sections
+document.getElementById('eventId').addEventListener('change', (e) => {
+  if (!document.getElementById('adminEventId').value) document.getElementById('adminEventId').value = e.target.value;
+});
+document.getElementById('adminEventId').addEventListener('change', (e) => {
+  if (!document.getElementById('eventId').value) document.getElementById('eventId').value = e.target.value;
+});
+
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>
