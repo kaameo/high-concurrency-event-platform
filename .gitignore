@@ -56,3 +56,5 @@ loadtest/**/results/
 
 ### omc ###
 .omc/
+
+docs/prd/
