@@ -1,5 +1,11 @@
 # Phase 1: 기반 구축 (1~2주)
 
+> **Status**: ✅ 완료 (2026-02-28)
+>
+> 구현 시 Spring Boot 4.x 호환성 이슈로 일부 의존성 버전이 변경되었고,
+> PK 전략이 BIGSERIAL → UUID v7으로 변경되었습니다.
+> 상세: [ADR-001](../adr/001-uuid-v7-primary-key.md), [ADR-002](../adr/002-spring-boot-4.md)
+
 ## 1.1 프로젝트 초기화
 
 ### Spring Initializr 설정 (실제 프로젝트 기준)
@@ -21,16 +27,29 @@
   - Spring Boot Actuator + Micrometer Prometheus (메트릭 노출)
 
 ### build.gradle.kts 추가 의존성
+
+> ⚠️ **구현 시 변경**: Spring Boot 4.x 호환을 위해 일부 버전이 PRD 원안과 다릅니다.
+> 상세: [phase1-troubleshooting.md](../reports/phase1-troubleshooting.md)
+
 ```kotlin
 // QueryDSL
 implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
 annotationProcessor("com.querydsl:querydsl-apt:5.1.0:jakarta")
+annotationProcessor("jakarta.persistence:jakarta.persistence-api")      // SB4 필수
+annotationProcessor("jakarta.annotation:jakarta.annotation-api")        // SB4 필수
 
-// Redisson (분산 락)
-implementation("org.redisson:redisson-spring-boot-starter:3.27.0")
+// Redisson (분산 락) — 원안: 3.27.0 → SB4 호환: 4.0.0
+implementation("org.redisson:redisson-spring-boot-starter:4.0.0")
 
-// Springdoc OpenAPI (Swagger)
-implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
+// Springdoc OpenAPI (Swagger) — 원안: 2.4.0 → SB4 호환: 3.0.0
+implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
+
+// Flyway — 원안: flyway-core → SB4: spring-boot-flyway starter 필수
+implementation("org.springframework.boot:spring-boot-flyway")
+runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
+// UUID v7 (원안: BIGSERIAL → 변경: UUID v7, ADR-001 참조)
+implementation("com.github.f4b6a3:uuid-creator:6.0.0")
 
 // Testcontainers
 testImplementation("org.testcontainers:postgresql:1.19.7")
@@ -123,6 +142,9 @@ GRAFANA_PORT=3000
 > `.env.example`을 커밋하고, `.env`는 `.gitignore`에 포함 (이미 설정됨)
 
 ### Docker Compose (`docker-compose.yml`)
+
+> ⚠️ **구현 시 변경**: Kafka 리스너를 INTERNAL/EXTERNAL로 분리 (advertised.listeners 오류 해결)
+
 ```yaml
 version: '3.8'
 services:
@@ -150,10 +172,12 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      # 원안과 다름: INTERNAL/EXTERNAL 리스너 분리 (트러블슈팅 #3 참조)
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS}
@@ -167,7 +191,7 @@ services:
       - kafka
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
 
   # app:
   #   build: .
@@ -182,7 +206,7 @@ services:
   #     SPRING_DATASOURCE_USERNAME: postgres
   #     SPRING_DATASOURCE_PASSWORD: postgres
   #     SPRING_DATA_REDIS_HOST: redis
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
 
   prometheus:
     image: prom/prometheus:latest
@@ -221,6 +245,9 @@ scrape_configs:
 ```
 
 ### kind 클러스터 설정 (`infra/kind/config.yaml`)
+
+> ℹ️ Phase 5에서 구현 예정
+
 ```yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -256,6 +283,9 @@ nodes:
 ```
 
 ### K8s 매니페스트 구조
+
+> ℹ️ Phase 5에서 구현 예정
+
 ```
 infra/k8s/
 ├── namespace.yaml
@@ -292,6 +322,8 @@ infra/k8s/
 
 ### API 스펙
 
+> ⚠️ **구현 시 변경**: `couponEventId`, `requestId` 타입이 정수/문자열에서 **UUID v7**으로 변경됨 ([ADR-001](../adr/001-uuid-v7-primary-key.md))
+
 #### `POST /api/v1/coupons/issue`
 쿠폰 발급 요청 접수 (비동기)
 
@@ -303,7 +335,7 @@ infra/k8s/
 **Request:**
 ```json
 {
-  "couponEventId": 1,
+  "couponEventId": "019577a0-0000-7000-8000-000000000001",
   "userId": 12345
 }
 ```
@@ -313,20 +345,23 @@ infra/k8s/
 {
   "success": true,
   "data": {
-    "requestId": "req-uuid-xxx",
-    "status": "PENDING",
-    "message": "발급 요청이 접수되었습니다."
+    "requestId": "019577a0-1234-7000-8000-abcdef012345",
+    "status": "ISSUED",
+    "message": "쿠폰이 발급되었습니다."
   }
 }
 ```
 
+> ℹ️ Phase 1에서는 동기 처리이므로 status가 즉시 `ISSUED`로 반환됩니다.
+> Phase 2에서 Kafka 비동기 처리 전환 시 `PENDING` → `ISSUED`로 변경됩니다. ([ADR-003](../adr/003-sync-db-issuance.md))
+
 **Error Responses:**
-| Status | Code | 설명 |
-|--------|------|------|
-| 400 | `INVALID_REQUEST` | 잘못된 요청 |
-| 409 | `REJECTED_DUPLICATE` | 동일 Idempotency-Key 중복 요청 |
-| 410 | `REJECTED_OUT_OF_STOCK` | 재고 소진 |
-| 429 | `RATE_LIMIT_EXCEEDED` | 요청 제한 초과 |
+| Status | Code | 설명 | 구현 상태 |
+|--------|------|------|-----------|
+| 400 | `INVALID_REQUEST` | 잘못된 요청 | ✅ |
+| 409 | `REJECTED_DUPLICATE` | 동일 사용자 중복 발급 | ✅ |
+| 410 | `REJECTED_OUT_OF_STOCK` | 재고 소진 | ✅ |
+| 429 | `RATE_LIMIT_EXCEEDED` | 요청 제한 초과 | ⏳ Phase 2 |
 
 #### `GET /api/v1/coupons/requests/{requestId}`
 비동기 발급 요청 상태 조회
@@ -336,8 +371,8 @@ infra/k8s/
 {
   "success": true,
   "data": {
-    "requestId": "req-uuid-xxx",
-    "couponEventId": 1,
+    "requestId": "019577a0-1234-7000-8000-abcdef012345",
+    "couponEventId": "019577a0-0000-7000-8000-000000000001",
     "userId": 12345,
     "status": "ISSUED",
     "issuedAt": "2026-03-01T00:00:01"
@@ -362,7 +397,7 @@ infra/k8s/
 {
   "success": true,
   "data": {
-    "couponEventId": 1,
+    "couponEventId": "019577a0-0000-7000-8000-000000000001",
     "name": "신규 가입 쿠폰",
     "totalStock": 100000,
     "remainingStock": 45230,
@@ -374,9 +409,15 @@ infra/k8s/
 ```
 
 ### DB 스키마
+
+> ⚠️ **구현 시 변경**: BIGSERIAL → UUID v7 네이티브 타입 ([ADR-001](../adr/001-uuid-v7-primary-key.md))
+>
+> Flyway 마이그레이션: `V1__init.sql` (초기 BIGSERIAL) → `V2__uuid_v7_migration.sql` (UUID 전환)
+
 ```sql
+-- 최종 스키마 (V2__uuid_v7_migration.sql)
 CREATE TABLE coupon_event (
-    id          BIGSERIAL PRIMARY KEY,
+    id          UUID PRIMARY KEY,
     name        VARCHAR(100) NOT NULL,
     total_stock INTEGER NOT NULL,
     status      VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
@@ -387,9 +428,9 @@ CREATE TABLE coupon_event (
 );
 
 CREATE TABLE coupon_issue (
-    id               BIGSERIAL PRIMARY KEY,
+    id               UUID PRIMARY KEY,
     request_id       UUID NOT NULL UNIQUE,
-    coupon_event_id  BIGINT NOT NULL REFERENCES coupon_event(id),
+    coupon_event_id  UUID NOT NULL REFERENCES coupon_event(id),
     user_id          BIGINT NOT NULL,
     idempotency_key  VARCHAR(64) NOT NULL,
     status           VARCHAR(30) NOT NULL DEFAULT 'PENDING',
@@ -430,8 +471,23 @@ public record ApiResponse<T>(
 ```
 
 ### Phase 1 완료 기준
-- [ ] `docker-compose up`으로 전체 인프라 기동
-- [ ] Spring Boot 앱 정상 부팅 (DB, Redis, Kafka 연결)
-- [ ] Swagger UI에서 API 확인 가능
-- [ ] Prometheus → Grafana 메트릭 수집 확인
-- [ ] 기본 CRUD 테스트 통과
+- [x] `docker-compose up`으로 전체 인프라 기동
+- [x] Spring Boot 앱 정상 부팅 (DB, Redis, Kafka 연결)
+- [x] Swagger UI에서 API 확인 가능
+- [x] Prometheus → Grafana 메트릭 수집 확인
+- [x] 기본 CRUD 테스트 통과 (13개 단위 테스트)
+
+---
+
+## 구현 시 변경 이력
+
+| 항목 | PRD 원안 | 실제 구현 | 사유 | 참조 |
+|------|----------|-----------|------|------|
+| PK 타입 | BIGSERIAL | UUID v7 (`uuid` 네이티브) | 분산 생성, 16바이트 최적 | [ADR-001](../adr/001-uuid-v7-primary-key.md) |
+| Redisson | 3.27.0 | 4.0.0 | SB4 호환 필수 | [ADR-002](../adr/002-spring-boot-4.md) |
+| Springdoc | 2.4.0 | 3.0.0 | SB4 호환 필수 | [ADR-002](../adr/002-spring-boot-4.md) |
+| Flyway | flyway-core | spring-boot-flyway | SB4 모듈화 | [트러블슈팅 #1](../reports/phase1-troubleshooting.md) |
+| QueryDSL AP | 기본 | +jakarta.persistence-api | SB4 AP 클래스패스 | [트러블슈팅 #5](../reports/phase1-troubleshooting.md) |
+| Kafka 리스너 | 단일 | INTERNAL/EXTERNAL 분리 | advertised.listeners 오류 | [트러블슈팅 #3](../reports/phase1-troubleshooting.md) |
+| 발급 응답 status | PENDING | ISSUED (동기) | Phase 1 동기 처리 | [ADR-003](../adr/003-sync-db-issuance.md) |
+| 429 Rate Limit | Phase 1 | Phase 2로 이관 | Redis Rate Limiter 필요 | — |
