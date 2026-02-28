@@ -107,7 +107,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
       "datasource": { "type": "prometheus" },
       "targets": [
-        { "expr": "rate(coupon_issue_total{job=\"spring-boot\"}[5m])", "legendFormat": "{{status}}", "refId": "A" }
+        { "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot\", uri=\"/api/v1/coupons/issue\"}[5m])", "legendFormat": "{{status}} {{method}}", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
     },
@@ -126,7 +126,7 @@
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
       "datasource": { "type": "prometheus" },
-      "targets": [{ "expr": "coupon_issue_total{job=\"spring-boot\", status=\"success\"}", "refId": "A" }],
+      "targets": [{ "expr": "http_server_requests_seconds_count{job=\"spring-boot\", uri=\"/api/v1/coupons/issue\", status=\"202\"}", "refId": "A" }],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     },
     {
@@ -135,7 +135,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
       "datasource": { "type": "prometheus" },
       "targets": [
-        { "expr": "rate(coupon_issue_total{job=\"spring-boot\", status=\"rate_limited\"}[5m])", "legendFormat": "Rejected/s", "refId": "A" }
+        { "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot\", uri=\"/api/v1/coupons/issue\", status=~\"4..\"}[5m])", "legendFormat": "{{status}} Rejected/s", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
     },
@@ -145,7 +145,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
       "datasource": { "type": "prometheus" },
       "targets": [
-        { "expr": "kafka_server_fetcherlagmetrics_consumerlag{job=\"kafka\"}", "legendFormat": "{{topic}}-{{partition}}", "refId": "A" }
+        { "expr": "kafka_consumergroup_lag{job=\"kafka-exporter\", topic!~\"__.*\"}", "legendFormat": "{{consumergroup}} {{topic}}-{{partition}}", "refId": "A" }
       ],
       "fieldConfig": { "defaults": {}, "overrides": [] }
     },
@@ -155,8 +155,8 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
       "datasource": { "type": "prometheus" },
       "targets": [
-        { "expr": "rate(kafka_server_brokertopicmetrics_messagesin_total{job=\"kafka\"}[5m])", "legendFormat": "Messages In {{topic}}", "refId": "A" },
-        { "expr": "rate(kafka_server_brokertopicmetrics_bytesout_total{job=\"kafka\"}[5m])", "legendFormat": "Bytes Out {{topic}}", "refId": "B" }
+        { "expr": "kafka_server_brokertopicmetrics_messagesinpersec_oneminuterate{job=\"kafka\", topic!=\"\"}", "legendFormat": "Messages In {{topic}}", "refId": "A" },
+        { "expr": "kafka_server_brokertopicmetrics_bytesoutpersec_oneminuterate{job=\"kafka\", topic!=\"\"}", "legendFormat": "Bytes Out {{topic}}", "refId": "B" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
     },

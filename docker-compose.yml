@@ -62,6 +62,15 @@ services:
   #     SPRING_DATA_REDIS_HOST: redis
   #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    ports:
+      - "9308:9308"
+    command:
+      - --kafka.server=kafka:29092
+    depends_on:
+      - kafka
+
   redis-exporter:
     image: oliver006/redis_exporter:latest
     ports:
