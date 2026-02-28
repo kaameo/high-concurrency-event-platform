@@ -6,6 +6,7 @@ import com.kaameo.event_platform.coupon.domain.CouponEventStatus;
 import com.kaameo.event_platform.coupon.dto.CouponIssueRequest;
 import com.kaameo.event_platform.coupon.repository.CouponEventRepository;
 import com.kaameo.event_platform.coupon.repository.CouponIssueRepository;
+import com.kaameo.event_platform.coupon.service.RedisStockManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +16,19 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,32 +44,39 @@ class CouponIssueIntegrationTest {
             .withUsername("test")
             .withPassword("test");
 
+    @Container
+    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withExposedPorts(6379);
+
+    @Container
+    static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.0"));
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.data.redis.host", () -> "localhost");
-        registry.add("spring.data.redis.port", () -> "6379");
-        registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9092");
-        registry.add("spring.kafka.consumer.auto-offset-reset", () -> "earliest");
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         registry.add("spring.autoconfigure.exclude", () ->
-                "org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration," +
-                "org.redisson.spring.starter.RedissonAutoConfiguration");
+                "org.redisson.spring.starter.RedissonAutoConfigurationV2," +
+                "org.redisson.spring.starter.RedissonAutoConfigurationV4");
     }
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private CouponEventRepository couponEventRepository;
 
     @Autowired
     private CouponIssueRepository couponIssueRepository;
+
+    @Autowired
+    private RedisStockManager redisStockManager;
 
     @BeforeEach
     void setUp() {
@@ -72,7 +85,7 @@ class CouponIssueIntegrationTest {
     }
 
     @Test
-    void fullIssuanceFlow() throws Exception {
+    void fullIssuanceFlow_asyncPipeline() throws Exception {
         CouponEvent event = CouponEvent.builder()
                 .name("Integration Test Coupon")
                 .totalStock(10)
@@ -80,40 +93,36 @@ class CouponIssueIntegrationTest {
                 .startAt(LocalDateTime.now().minusHours(1))
                 .endAt(LocalDateTime.now().plusHours(1))
                 .build();
-        event = couponEventRepository.save(event);
+        CouponEvent savedEvent = couponEventRepository.save(event);
+        redisStockManager.initStock(savedEvent.getId(), savedEvent.getTotalStock());
 
-        CouponIssueRequest request = new CouponIssueRequest(event.getId(), 1L);
+        CouponIssueRequest request = new CouponIssueRequest(savedEvent.getId(), 1L);
         String idempotencyKey = UUID.randomUUID().toString();
 
-        String responseBody = mockMvc.perform(post("/api/v1/coupons/issue")
+        mockMvc.perform(post("/api/v1/coupons/issue")
                         .header("Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.status").value("ISSUED"))
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
 
-        String requestId = objectMapper.readTree(responseBody).path("data").path("requestId").asText();
+        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(couponIssueRepository.countByCouponEventId(savedEvent.getId())).isEqualTo(1));
 
-        mockMvc.perform(get("/api/v1/coupons/requests/{requestId}", requestId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("ISSUED"));
-
-        mockMvc.perform(get("/api/v1/coupons/{couponEventId}", event.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.remainingStock").value(9));
+        assertThat(redisStockManager.getRemainingStock(savedEvent.getId())).isEqualTo(9);
     }
 
     @Test
-    void idempotency_sameKey_returnsSameResult() throws Exception {
+    void idempotency_sameKey_returnsExisting() throws Exception {
         CouponEvent event = CouponEvent.builder()
                 .name("Idempotency Test").totalStock(10).status(CouponEventStatus.ACTIVE)
                 .startAt(LocalDateTime.now().minusHours(1)).endAt(LocalDateTime.now().plusHours(1))
                 .build();
-        event = couponEventRepository.save(event);
+        CouponEvent savedEvent = couponEventRepository.save(event);
+        redisStockManager.initStock(savedEvent.getId(), savedEvent.getTotalStock());
 
-        CouponIssueRequest request = new CouponIssueRequest(event.getId(), 1L);
+        CouponIssueRequest request = new CouponIssueRequest(savedEvent.getId(), 1L);
         String idempotencyKey = UUID.randomUUID().toString();
 
         mockMvc.perform(post("/api/v1/coupons/issue")
@@ -127,6 +136,24 @@ class CouponIssueIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.data.status").value("ISSUED"));
+                .andExpect(jsonPath("$.data.message").value("이미 처리된 요청입니다."));
+    }
+
+    @Test
+    void soldOut_returns410() throws Exception {
+        CouponEvent event = CouponEvent.builder()
+                .name("SoldOut Test").totalStock(1).status(CouponEventStatus.ACTIVE)
+                .startAt(LocalDateTime.now().minusHours(1)).endAt(LocalDateTime.now().plusHours(1))
+                .build();
+        CouponEvent savedEvent = couponEventRepository.save(event);
+        redisStockManager.initStock(savedEvent.getId(), 0);
+
+        CouponIssueRequest request = new CouponIssueRequest(savedEvent.getId(), 1L);
+
+        mockMvc.perform(post("/api/v1/coupons/issue")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isGone());
     }
 }

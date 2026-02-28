@@ -4,6 +4,7 @@ import com.kaameo.event_platform.common.dto.ApiResponse;
 import com.kaameo.event_platform.coupon.exception.CouponNotFoundException;
 import com.kaameo.event_platform.coupon.exception.CouponSoldOutException;
 import com.kaameo.event_platform.coupon.exception.DuplicateIssueException;
+import com.kaameo.event_platform.coupon.exception.RateLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,6 +29,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateIssueException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicateIssue(DuplicateIssueException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceeded(RateLimitExceededException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(ApiResponse.error(e.getMessage()));
     }
 

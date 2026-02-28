@@ -1,6 +1,6 @@
 # ADR-003: Phase 1에서 동기 DB 발급 방식 채택
 
-- **Status**: Accepted (Phase 2에서 Superseded 예정)
+- **Status**: Superseded by [ADR-005](./005-redis-atomic-stock.md), [ADR-006](./006-kafka-async-pipeline.md)
 - **Date**: 2026-02-28
 - **Deciders**: 개발팀
 
