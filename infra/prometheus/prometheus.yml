@@ -7,8 +7,10 @@ scrape_configs:
     static_configs:
       - targets: ['host.docker.internal:8080']
 
-  # Kafka는 JMX 메트릭만 제공하므로 HTTP scrape 불가.
-  # Phase 2에서 JMX Exporter sidecar 추가 후 활성화 예정.
-  # - job_name: 'kafka'
-  #   static_configs:
-  #     - targets: ['kafka:9108']  # JMX Exporter port
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-jmx-exporter:5556']

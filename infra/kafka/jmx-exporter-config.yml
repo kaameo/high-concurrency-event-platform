@@ -1,0 +1,49 @@
+hostPort: kafka:9999
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+rules:
+  # Broker Topic Metrics
+  - pattern: kafka.server<type=BrokerTopicMetrics, name=(.+), topic=(.+)><>(\w+)
+    name: kafka_server_brokertopicmetrics_$1_$3
+    labels:
+      topic: $2
+    type: GAUGE
+
+  - pattern: kafka.server<type=BrokerTopicMetrics, name=(.+)><>(\w+)
+    name: kafka_server_brokertopicmetrics_$1_$2
+    type: GAUGE
+
+  # Request Metrics
+  - pattern: kafka.network<type=RequestMetrics, name=(.+), request=(.+)><>(\w+)
+    name: kafka_network_requestmetrics_$1
+    labels:
+      request: $2
+    type: GAUGE
+
+  # Consumer Group Lag
+  - pattern: kafka.server<type=FetcherLagMetrics, name=(.+), clientId=(.+), topic=(.+), partition=(.+)><>Value
+    name: kafka_server_fetcherlagmetrics_$1
+    labels:
+      clientId: $2
+      topic: $3
+      partition: $4
+    type: GAUGE
+
+  # Partition Count
+  - pattern: kafka.server<type=ReplicaManager, name=PartitionCount><>Value
+    name: kafka_server_replicamanager_partitioncount
+    type: GAUGE
+
+  # Under Replicated Partitions
+  - pattern: kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value
+    name: kafka_server_replicamanager_underreplicatedpartitions
+    type: GAUGE
+
+  # Log Size
+  - pattern: kafka.log<type=Log, name=Size, topic=(.+), partition=(.+)><>Value
+    name: kafka_log_size
+    labels:
+      topic: $1
+      partition: $2
+    type: GAUGE
