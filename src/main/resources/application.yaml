@@ -36,8 +36,11 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "*"
+    listener:
+      ack-mode: record
 
   flyway:
     enabled: true
@@ -66,3 +69,6 @@ management:
     metrics:
       export:
         enabled: true
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true

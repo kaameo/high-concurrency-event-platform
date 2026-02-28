@@ -145,7 +145,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
       "datasource": { "type": "prometheus" },
       "targets": [
-        { "expr": "kafka_consumergroup_lag{job=\"kafka-exporter\", topic!~\"__.*\"}", "legendFormat": "{{consumergroup}} {{topic}}-{{partition}}", "refId": "A" }
+        { "expr": "kafka_consumergroup_lag{job=\"kafka-exporter\"}", "legendFormat": "{{consumergroup}} {{topic}}-{{partition}}", "refId": "A" }
       ],
       "fieldConfig": { "defaults": {}, "overrides": [] }
     },
