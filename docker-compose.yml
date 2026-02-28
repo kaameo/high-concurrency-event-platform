@@ -9,17 +9,32 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "${REDIS_PORT}:6379"
     command: redis-server --maxmemory ${REDIS_MAX_MEMORY} --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   kafka:
     image: apache/kafka:3.9.0
     ports:
       - "${KAFKA_PORT}:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -41,26 +56,31 @@ services:
     ports:
       - "${KAFKA_UI_PORT}:8080"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       DYNAMIC_CONFIG_ENABLED: true
 
-  # app:
-  #   build: .
-  #   ports:
-  #     - "${APP_PORT}:8080"
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #     - kafka
-  #   environment:
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-  #     SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-  #     SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-  #     SPRING_DATA_REDIS_HOST: redis
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  app:
+    build: .
+    ports:
+      - "${APP_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
 
   kafka-exporter:
     image: danielqsj/kafka-exporter:latest
@@ -69,7 +89,8 @@ services:
     command:
       - --kafka.server=kafka:29092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   redis-exporter:
     image: oliver006/redis_exporter:latest
@@ -78,7 +99,8 @@ services:
     environment:
       REDIS_ADDR: redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   kafka-jmx-exporter:
     image: bitnami/jmx-exporter:latest
@@ -88,7 +110,8 @@ services:
       - ./infra/kafka/jmx-exporter-config.yml:/etc/jmx-exporter/config.yml
     command: "5556 /etc/jmx-exporter/config.yml"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest

@@ -24,7 +24,7 @@
       "title": "HTTP Success Rate",
       "type": "gauge",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot\", status=~\"2..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"spring-boot\"}[5m]))", "refId": "A" }],
       "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "steps": [{ "value": 0, "color": "red" }, { "value": 0.99, "color": "yellow" }, { "value": 0.999, "color": "green" }] } }, "overrides": [] }
     },
@@ -32,7 +32,7 @@
       "title": "HTTP p95 Latency",
       "type": "gauge",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot\"}[5m])) by (le))", "refId": "A" }],
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 0.1, "color": "yellow" }, { "value": 0.2, "color": "red" }] } }, "overrides": [] }
     },
@@ -40,7 +40,7 @@
       "title": "CPU Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "system_cpu_usage{job=\"spring-boot\"}", "legendFormat": "System CPU", "refId": "A" },
         { "expr": "process_cpu_usage{job=\"spring-boot\"}", "legendFormat": "Process CPU", "refId": "B" }
@@ -51,7 +51,7 @@
       "title": "JVM Heap Memory",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "jvm_memory_used_bytes{job=\"spring-boot\", area=\"heap\"}", "legendFormat": "Used {{id}}", "refId": "A" },
         { "expr": "jvm_memory_max_bytes{job=\"spring-boot\", area=\"heap\"}", "legendFormat": "Max {{id}}", "refId": "B" }
@@ -62,7 +62,7 @@
       "title": "HTTP Request Rate (5m)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot\"}[5m])", "legendFormat": "{{method}} {{uri}} {{status}}", "refId": "A" }
       ],
@@ -72,7 +72,7 @@
       "title": "HTTP Response Time p99 (5m)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "histogram_quantile(0.99, rate(http_server_requests_seconds_bucket{job=\"spring-boot\"}[5m]))", "legendFormat": "{{method}} {{uri}}", "refId": "A" }
       ],
@@ -82,7 +82,7 @@
       "title": "JVM Threads",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "jvm_threads_live_threads{job=\"spring-boot\"}", "legendFormat": "Live", "refId": "A" },
         { "expr": "jvm_threads_peak_threads{job=\"spring-boot\"}", "legendFormat": "Peak", "refId": "B" }
@@ -93,7 +93,7 @@
       "title": "HikariCP Active Connections",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "hikaricp_connections_active{job=\"spring-boot\"}", "legendFormat": "Active", "refId": "A" },
         { "expr": "hikaricp_connections_idle{job=\"spring-boot\"}", "legendFormat": "Idle", "refId": "B" },
@@ -105,7 +105,7 @@
       "title": "Coupon Issue Rate (5m)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot\", uri=\"/api/v1/coupons/issue\"}[5m])", "legendFormat": "{{status}} {{method}}", "refId": "A" }
       ],
@@ -115,7 +115,7 @@
       "title": "GC Pause Time (5m)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "rate(jvm_gc_pause_seconds_sum{job=\"spring-boot\"}[5m])", "legendFormat": "{{cause}} {{action}}", "refId": "A" }
       ],
@@ -125,7 +125,7 @@
       "title": "Coupon Issued Total",
       "type": "stat",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [{ "expr": "http_server_requests_seconds_count{job=\"spring-boot\", uri=\"/api/v1/coupons/issue\", status=\"202\"}", "refId": "A" }],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     },
@@ -133,7 +133,7 @@
       "title": "Rate Limiter Rejected",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot\", uri=\"/api/v1/coupons/issue\", status=~\"4..\"}[5m])", "legendFormat": "{{status}} Rejected/s", "refId": "A" }
       ],
@@ -143,7 +143,7 @@
       "title": "Kafka Consumer Lag",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "kafka_consumergroup_lag{job=\"kafka-exporter\"}", "legendFormat": "{{consumergroup}} {{topic}}-{{partition}}", "refId": "A" }
       ],
@@ -153,7 +153,7 @@
       "title": "Kafka Messages In/Out Rate",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "kafka_server_brokertopicmetrics_messagesinpersec_oneminuterate{job=\"kafka\", topic!=\"\"}", "legendFormat": "Messages In {{topic}}", "refId": "A" },
         { "expr": "kafka_server_brokertopicmetrics_bytesoutpersec_oneminuterate{job=\"kafka\", topic!=\"\"}", "legendFormat": "Bytes Out {{topic}}", "refId": "B" }
@@ -164,10 +164,12 @@
       "title": "Kafka Request Latency",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
-        { "expr": "kafka_network_requestmetrics_totaltimems{job=\"kafka\", request=\"Produce\"}", "legendFormat": "Produce", "refId": "A" },
-        { "expr": "kafka_network_requestmetrics_totaltimems{job=\"kafka\", request=\"FetchConsumer\"}", "legendFormat": "FetchConsumer", "refId": "B" }
+        { "expr": "kafka_network_requestmetrics_totaltimems{job=\"kafka\", request=\"Produce\", _objectname=~\".*95thPercentile\"}", "legendFormat": "Produce p95", "refId": "A" },
+        { "expr": "kafka_network_requestmetrics_totaltimems{job=\"kafka\", request=\"FetchConsumer\", _objectname=~\".*95thPercentile\"}", "legendFormat": "FetchConsumer p95", "refId": "B" },
+        { "expr": "kafka_network_requestmetrics_totaltimems{job=\"kafka\", request=\"Produce\", _objectname=~\".*50thPercentile\"}", "legendFormat": "Produce p50", "refId": "C" },
+        { "expr": "kafka_network_requestmetrics_totaltimems{job=\"kafka\", request=\"FetchConsumer\", _objectname=~\".*50thPercentile\"}", "legendFormat": "FetchConsumer p50", "refId": "D" }
       ],
       "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
     },
@@ -175,7 +177,7 @@
       "title": "Redis Connected Clients",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 52 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "redis_connected_clients{job=\"redis\"}", "legendFormat": "Clients", "refId": "A" }
       ],
@@ -185,7 +187,7 @@
       "title": "Redis Memory Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 52 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "redis_memory_used_bytes{job=\"redis\"}", "legendFormat": "Used", "refId": "A" },
         { "expr": "redis_memory_max_bytes{job=\"redis\"}", "legendFormat": "Max", "refId": "B" }
@@ -196,7 +198,7 @@
       "title": "Redis Ops/sec",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 52 },
-      "datasource": { "type": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         { "expr": "rate(redis_commands_processed_total{job=\"redis\"}[5m])", "legendFormat": "Ops/sec", "refId": "A" }
       ],
