@@ -35,6 +35,15 @@ public class CouponController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(response));
     }
 
+    @PostMapping("/issue-sync")
+    @Operation(summary = "쿠폰 동기 발급 (실험용)", description = "DB 직결 동기 방식으로 쿠폰을 발급합니다. 실험 A 비교용.")
+    public ResponseEntity<ApiResponse<CouponIssueResponse>> issueCouponSync(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody CouponIssueRequest request) {
+        CouponIssueResponse response = couponIssueService.issueCouponSync(request, idempotencyKey);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
     @GetMapping("/requests/{requestId}")
     @Operation(summary = "발급 요청 상태 조회", description = "쿠폰 발급 요청의 처리 상태를 조회합니다.")
     public ResponseEntity<ApiResponse<CouponIssueStatusResponse>> getIssueStatus(

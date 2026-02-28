@@ -66,6 +66,39 @@ public class CouponIssueService {
         return new CouponIssueResponse(requestId, IssueStatus.PENDING.name(), "쿠폰 발급 요청이 접수되었습니다.");
     }
 
+    @Transactional
+    public CouponIssueResponse issueCouponSync(CouponIssueRequest request, String idempotencyKey) {
+        UUID requestId = UuidCreator.getTimeOrderedEpoch();
+
+        if (!redisIdempotencyManager.checkAndSet(idempotencyKey, requestId)) {
+            return new CouponIssueResponse(null, IssueStatus.ISSUED.name(), "이미 처리된 요청입니다.");
+        }
+
+        if (!redisRateLimiter.isAllowed(request.userId(), RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW)) {
+            throw new RateLimitExceededException("요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
+        }
+
+        if (!redisDuplicateChecker.checkAndMark(request.couponEventId(), request.userId())) {
+            throw new DuplicateIssueException("이미 발급된 쿠폰입니다.");
+        }
+
+        if (!redisStockManager.decrementStock(request.couponEventId())) {
+            throw new CouponSoldOutException("쿠폰이 모두 소진되었습니다.");
+        }
+
+        CouponIssue issue = CouponIssue.builder()
+                .requestId(requestId)
+                .couponEventId(request.couponEventId())
+                .userId(request.userId())
+                .idempotencyKey(idempotencyKey)
+                .status(IssueStatus.PENDING)
+                .build();
+        issue.markIssued();
+        couponIssueRepository.save(issue);
+
+        return new CouponIssueResponse(requestId, IssueStatus.ISSUED.name(), "쿠폰이 즉시 발급되었습니다.");
+    }
+
     @Transactional(readOnly = true)
     public CouponIssueStatusResponse getIssueStatus(UUID requestId) {
         CouponIssue issue = couponIssueRepository.findByRequestId(requestId)
