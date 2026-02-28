@@ -124,7 +124,7 @@ docker-compose up -d
 
 | 서비스 | URL | 비고 |
 |--------|-----|------|
-| **Test Console** | [http://localhost:8080](http://localhost:8080) | 쿠폰 발급 테스트 UI |
+| **Test Console** | [http://localhost:8080/index.html](http://localhost:8080/index.html) | 쿠폰 발급 테스트 UI |
 | **Swagger UI** | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API 문서 및 테스트 |
 | **OpenAPI JSON** | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | OpenAPI 3.1 스펙 |
 | **Health Check** | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | 애플리케이션 상태 |
@@ -446,7 +446,7 @@ Client → Spring Boot
 
 | 서비스 | URL | 용도 |
 |--------|-----|------|
-| **Test Console** | [http://localhost:8080](http://localhost:8080) | 쿠폰 발급 테스트 UI |
+| **Test Console** | [http://localhost:8080/index.html](http://localhost:8080/index.html) | 쿠폰 발급 테스트 UI |
 | **Swagger UI** | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | API 문서 및 테스트 |
 | **OpenAPI Spec** | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | OpenAPI JSON |
 | **Health** | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | 앱 상태 확인 |
