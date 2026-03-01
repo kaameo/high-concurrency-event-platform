@@ -1,0 +1,17 @@
+.git
+.github
+.gradle
+.idea
+.claude
+.omc
+.env
+.env.*
+build
+out
+docs
+infra
+k6
+*.md
+*.log
+Dockerfile
+docker-compose.yml
