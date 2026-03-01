@@ -13,8 +13,12 @@ spring:
     hikari:
       connection-test-query: SELECT 1
       validation-timeout: 3000
-      connection-timeout: 5000
+      connection-timeout: 3000
       maximum-pool-size: 20
+      keepalive-time: 30000
+      max-lifetime: 60000
+      minimum-idle: 5
+      initialization-fail-timeout: 0
 
   jpa:
     hibernate:
@@ -38,6 +42,11 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: all
+      properties:
+        reconnect.backoff.ms: 500
+        reconnect.backoff.max.ms: 5000
+        request.timeout.ms: 10000
+        delivery.timeout.ms: 30000
     consumer:
       group-id: coupon-issue-group
       auto-offset-reset: earliest
@@ -46,8 +55,10 @@ spring:
       enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "*"
-        reconnect.backoff.ms: 1000
-        reconnect.backoff.max.ms: 10000
+        reconnect.backoff.ms: 500
+        reconnect.backoff.max.ms: 5000
+        session.timeout.ms: 15000
+        heartbeat.interval.ms: 3000
     listener:
       ack-mode: record
 
@@ -74,11 +85,12 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info,prometheus,metrics,circuitbreakers
   endpoint:
     health:
       show-details: always

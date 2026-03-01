@@ -6,6 +6,7 @@ import com.kaameo.event_platform.coupon.dto.CouponIssueResponse;
 import com.kaameo.event_platform.coupon.dto.CouponIssueStatusResponse;
 import com.kaameo.event_platform.coupon.domain.CouponIssue;
 import com.kaameo.event_platform.coupon.domain.IssueStatus;
+import com.kaameo.event_platform.common.exception.ServiceUnavailableException;
 import com.kaameo.event_platform.coupon.exception.CouponNotFoundException;
 import com.kaameo.event_platform.coupon.exception.CouponSoldOutException;
 import com.kaameo.event_platform.coupon.exception.DuplicateIssueException;
@@ -13,7 +14,10 @@ import com.kaameo.event_platform.coupon.exception.RateLimitExceededException;
 import com.kaameo.event_platform.coupon.kafka.CouponIssueProducer;
 import com.kaameo.event_platform.coupon.message.CouponIssueMessage;
 import com.kaameo.event_platform.coupon.repository.CouponIssueRepository;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +25,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CouponIssueService {
@@ -31,11 +36,22 @@ public class CouponIssueService {
     private final RedisDuplicateChecker redisDuplicateChecker;
     private final RedisStockManager redisStockManager;
     private final CouponIssueProducer couponIssueProducer;
+    private final CircuitBreaker couponIssueCircuitBreaker;
 
     private static final int RATE_LIMIT_MAX_REQUESTS = 5;
     private static final Duration RATE_LIMIT_WINDOW = Duration.ofSeconds(1);
 
     public CouponIssueResponse issueCoupon(CouponIssueRequest request, String idempotencyKey) {
+        try {
+            return couponIssueCircuitBreaker.executeSupplier(() -> doIssueCoupon(request, idempotencyKey));
+        } catch (CallNotPermittedException e) {
+            log.warn("Circuit breaker is OPEN for coupon issue - couponEventId: {}, userId: {}",
+                    request.couponEventId(), request.userId());
+            throw new ServiceUnavailableException("서비스가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.");
+        }
+    }
+
+    private CouponIssueResponse doIssueCoupon(CouponIssueRequest request, String idempotencyKey) {
         UUID requestId = UuidCreator.getTimeOrderedEpoch();
 
         if (!redisIdempotencyManager.checkAndSet(idempotencyKey, requestId)) {

@@ -11,9 +11,10 @@ import com.kaameo.event_platform.coupon.exception.RateLimitExceededException;
 import com.kaameo.event_platform.coupon.kafka.CouponIssueProducer;
 import com.kaameo.event_platform.coupon.repository.CouponIssueRepository;
 import com.kaameo.event_platform.coupon.service.*;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,8 +44,21 @@ class CouponIssueServiceTest {
     @Mock
     private CouponIssueProducer couponIssueProducer;
 
-    @InjectMocks
     private CouponIssueService couponIssueService;
+
+    @BeforeEach
+    void setUp() {
+        CircuitBreaker circuitBreaker = CircuitBreaker.ofDefaults("couponIssue");
+        couponIssueService = new CouponIssueService(
+                couponIssueRepository,
+                redisIdempotencyManager,
+                redisRateLimiter,
+                redisDuplicateChecker,
+                redisStockManager,
+                couponIssueProducer,
+                circuitBreaker
+        );
+    }
 
     private static final UUID EVENT_ID = UUID.fromString("019577a0-0000-7000-8000-000000000001");
     private static final UUID REQUEST_ID = UUID.fromString("019577a0-0000-7000-8000-000000000002");

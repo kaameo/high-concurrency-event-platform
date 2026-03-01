@@ -34,6 +34,9 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
+	// Resilience4j Circuit Breaker
+	implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
+
 	// QueryDSL
 	implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
 	annotationProcessor("com.querydsl:querydsl-apt:5.1.0:jakarta")
@@ -61,6 +64,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-data-redis-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-kafka-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
 	testImplementation("org.testcontainers:postgresql:1.19.7")
 	testImplementation("org.testcontainers:kafka:1.19.7")
 	testImplementation("org.testcontainers:junit-jupiter:1.19.7")

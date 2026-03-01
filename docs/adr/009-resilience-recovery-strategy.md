@@ -128,7 +128,8 @@ spring.kafka.consumer.properties:
 - **MTTR 목표 미달성**: 10분 내 완전한 서비스 복구 미달성 — Probe 개선 후에도 구조적 한계 잔존
 - **개선 사항**:
   1. ✅ **적용 완료** — Liveness/Readiness Probe 분리 (liveness: `/actuator/health/liveness`, failureThreshold 6, initialDelaySeconds 90)
-  2. HikariCP `connectionTimeout` 단축 및 `initializationFailTimeout` 조정
-  3. Kafka `reconnect.backoff.max.ms` 축소
-  4. Circuit Breaker (Resilience4j) 도입으로 빠른 실패 처리
-  5. **Kafka 다중 브로커 구성** — MTTR 목표 달성을 위한 핵심 과제 (단일 브로커가 근본 원인)
+  2. ✅ **적용 완료** — HikariCP 재연결 최적화 (`connectionTimeout` 3s, `keepaliveTime` 30s, `maxLifetime` 60s, `initializationFailTimeout` 0)
+  3. ✅ **적용 완료** — Kafka Producer/Consumer 재연결 최적화 (`reconnect.backoff` 500/5000ms, `session.timeout` 15s, `heartbeat` 3s)
+  4. ✅ **적용 완료** — Resilience4j Circuit Breaker 도입 (`couponIssue` 인스턴스: sliding-window 10, failure-rate 50%, wait-duration 10s, slow-call 3s/80%) — 장애 시 30s 타임아웃 대기 → 즉시 503 반환
+  5. ✅ **적용 완료** — App 다중 레플리카 (replicas 2) + `topologySpreadConstraints` 노드 분산 배치 — Worker 1 장애 시에도 Worker 2의 Pod가 서비스 유지
+  6. **Kafka 다중 브로커 구성** — MTTR 목표 달성을 위한 핵심 과제 (단일 브로커가 근본 원인)
