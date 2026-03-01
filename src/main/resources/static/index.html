@@ -84,7 +84,7 @@
 <div class="header">
   <h1><span>Event Platform</span> Test Console</h1>
   <div class="header-links">
-    <a href="/swagger-ui.html" target="_blank">Swagger</a>
+    <a href="/swagger-ui/index.html" target="_blank">Swagger</a>
     <a href="http://localhost:3000" target="_blank">Grafana</a>
     <a href="http://localhost:9091" target="_blank">Kafka UI</a>
     <a href="http://localhost:9090" target="_blank">Prometheus</a>
@@ -107,7 +107,7 @@
     <div class="section">
       <div class="section-title">Coupon Issue</div>
       <div class="card">
-        <div class="form-row"><label>Event ID</label><input id="eventId" value="" placeholder="coupon event UUID"></div>
+        <div class="form-row"><label>Event ID</label><input id="eventId" value="" placeholder="쿠폰 이벤트 UUID"></div>
         <div class="form-row"><label>User ID</label><input id="userId" type="number" value="1" min="1"></div>
         <div class="btn-group">
           <button class="btn btn-primary" onclick="issueCoupon()">Issue (Async)</button>
@@ -136,7 +136,7 @@
     <div class="section">
       <div class="section-title">Admin</div>
       <div class="card">
-        <div class="form-row"><label>Event ID</label><input id="adminEventId" value="" placeholder="coupon event UUID"></div>
+        <div class="form-row"><label>Event ID</label><input id="adminEventId" value="" placeholder="쿠폰 이벤트 UUID"></div>
         <div class="btn-group">
           <button class="btn btn-green" onclick="initStock()">Init Stock</button>
           <button class="btn btn-blue btn-sm" onclick="getEventInfo()">Event Info</button>
@@ -313,11 +313,17 @@ async function refreshStatus() {
   const eventId = document.getElementById('adminEventId').value || document.getElementById('eventId').value;
   if (eventId) {
     try {
-      const res = await fetch(API + `/api/v1/admin/coupons/${eventId}/stats`);
-      if (res.ok) {
-        const data = await res.json();
-        document.getElementById('stat-issued').textContent = data.issuedCount ?? data.totalIssued ?? '--';
-        document.getElementById('stat-stock').textContent = data.remainingStock ?? data.stock ?? '--';
+      const statsRes = await fetch(API + `/api/v1/admin/coupons/${eventId}/stats`);
+      if (statsRes.ok) {
+        const statsBody = await statsRes.json();
+        const stats = statsBody.data || statsBody;
+        document.getElementById('stat-issued').textContent = stats.totalIssued ?? '--';
+      }
+      const eventRes = await fetch(API + `/api/v1/coupons/${eventId}`);
+      if (eventRes.ok) {
+        const eventBody = await eventRes.json();
+        const event = eventBody.data || eventBody;
+        document.getElementById('stat-stock').textContent = event.remainingStock ?? '--';
       }
     } catch {}
   }
