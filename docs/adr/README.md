@@ -17,3 +17,4 @@
 | [ADR-005](./005-redis-atomic-stock.md) | Redis DECR 원자적 재고 차감 채택 | Accepted | 2026-02-28 |
 | [ADR-006](./006-kafka-async-pipeline.md) | Kafka 비동기 발급 파이프라인 채택 | Accepted | 2026-02-28 |
 | [ADR-007](./007-async-over-sync-experiment.md) | Kafka 비동기 방식 성능 우위 실증 확인 | Accepted | 2026-02-28 |
+| [ADR-008](./008-hpa-cpu-scaling-strategy.md) | CPU 기반 HPA Auto-scaling 전략 채택 | Accepted | 2026-03-01 |
