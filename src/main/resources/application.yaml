@@ -50,6 +50,14 @@ spring:
     virtual:
       enabled: true
 
+kafka:
+  topic:
+    coupon-issue:
+      partitions: ${KAFKA_COUPON_PARTITIONS:3}
+  consumer:
+    coupon-issue:
+      concurrency: ${KAFKA_COUPON_CONSUMER_CONCURRENCY:1}
+
 server:
   port: 8080
 

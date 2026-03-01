@@ -2,6 +2,7 @@ package com.kaameo.event_platform.config;
 
 import com.kaameo.event_platform.coupon.kafka.KafkaTopics;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
@@ -14,10 +15,13 @@ import org.springframework.util.backoff.ExponentialBackOff;
 @Configuration
 public class KafkaConfig {
 
+    @Value("${kafka.topic.coupon-issue.partitions:3}")
+    private int couponIssuePartitions;
+
     @Bean
     public NewTopic couponIssueTopic() {
         return TopicBuilder.name(KafkaTopics.COUPON_ISSUE)
-                .partitions(3)
+                .partitions(couponIssuePartitions)
                 .replicas(1)
                 .build();
     }

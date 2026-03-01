@@ -18,7 +18,8 @@ public class CouponIssueConsumer {
 
     private final CouponIssueRepository couponIssueRepository;
 
-    @KafkaListener(topics = KafkaTopics.COUPON_ISSUE, groupId = KafkaTopics.GROUP_COUPON_ISSUE)
+    @KafkaListener(topics = KafkaTopics.COUPON_ISSUE, groupId = KafkaTopics.GROUP_COUPON_ISSUE,
+            concurrency = "${kafka.consumer.coupon-issue.concurrency:1}")
     @Transactional
     public void consume(CouponIssueMessage message) {
         log.info("쿠폰 발급 메시지 수신: requestId={}, userId={}", message.requestId(), message.userId());
