@@ -107,8 +107,10 @@ spec:
 
 ### Spring Boot Reconnection 확인
 - Redis: Lettuce 자동 재연결 (기본 활성화)
-- Kafka: Consumer rebalance 후 자동 재연결
-- PostgreSQL: HikariCP connection validation (`connectionTestQuery`)
+- Kafka: Consumer rebalance 후 자동 재연결 (backoff 500/5000ms, session-timeout 15s, heartbeat 3s)
+- Kafka Producer: 재연결 최적화 (backoff 500/5000ms, request-timeout 10s, delivery-timeout 30s)
+- PostgreSQL: HikariCP 재연결 최적화 (connectionTimeout 3s, keepaliveTime 30s, maxLifetime 60s, initializationFailTimeout 0)
+- Circuit Breaker: Resilience4j 프로그래매틱 적용 (장애 시 30s 타임아웃 → 즉시 503 반환)
 
 ### Pod Anti-Affinity 실험
 
@@ -140,10 +142,18 @@ affinity:
 - [x] 실험 실행 스크립트 작성 (`k8s/run-experiment-d.sh`)
 - [x] Spring Boot reconnection 설정 추가 (`application.yaml`)
 - [x] ADR-009 장애 복구 전략 작성
-- [ ] 시나리오 D-1, D-2 각 3회 실행
+- [x] 시나리오 D-1, D-2 실행 및 MTTR 측정
+- [x] 결과 리포트 작성 (`docs/reports/phase4/experiment-d-report.md`)
 - [ ] PV/PVC 기반 데이터 유실 0건 검증
 - [ ] V자형 회복 곡선 Grafana 캡처 획득
-- [ ] MTTR 수치 측정 완료
-- [ ] Spring Boot 자동 재연결 확인
-- [ ] 발급 데이터 무손실 증빙 (장애 전/후 발급 건수 대조 리포트)
-- [ ] 결과 리포트 작성 완료 (`docs/reports/phase4/experiment-d-report.md`)
+
+### Phase 4-A: 장애 복구 개선 (코드/설정 레벨)
+- [x] Resilience4j Circuit Breaker 프로그래매틱 적용 (`CircuitBreakerConfig.java`)
+- [x] ServiceUnavailableException + 503 핸들러 추가
+- [x] HikariCP 재연결 최적화 (connectionTimeout 3s, keepaliveTime 30s, initializationFailTimeout 0)
+- [x] Kafka Producer/Consumer 재연결 최적화 (backoff 500/5000ms, session-timeout 15s)
+- [x] App 다중 레플리카 (replicas 2) + topologySpreadConstraints 노드 분산 배치
+- [x] ADR-009 적용 완료 항목 반영
+- [x] Testcontainers 공유 @TestConfiguration 리팩토링 (Spring Boot 4 @ServiceConnection)
+- [x] 트러블슈팅 리포트 작성 (`docs/reports/phase4/phase4a-troubleshooting.md`)
+- [ ] kind 클러스터 재배포 후 실험 D 재실행 — MTTR 3~5분 달성 검증
