@@ -1,0 +1,16 @@
+auth:
+  postgresPassword: postgres
+  username: postgres
+  password: postgres
+  database: event_platform
+
+primary:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    size: 1Gi

@@ -1,0 +1,27 @@
+controller:
+  replicaCount: 1
+
+broker:
+  replicaCount: 0
+
+kraft:
+  enabled: true
+
+listeners:
+  client:
+    protocol: PLAINTEXT
+  interbroker:
+    protocol: PLAINTEXT
+  controller:
+    protocol: PLAINTEXT
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+persistence:
+  size: 1Gi
