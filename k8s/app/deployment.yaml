@@ -32,13 +32,17 @@ spec:
               memory: 1Gi
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8080
             initialDelaySeconds: 30
+            timeoutSeconds: 5
             periodSeconds: 10
+            failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 60
+            initialDelaySeconds: 90
+            timeoutSeconds: 5
             periodSeconds: 15
+            failureThreshold: 6

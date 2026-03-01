@@ -18,3 +18,4 @@
 | [ADR-006](./006-kafka-async-pipeline.md) | Kafka 비동기 발급 파이프라인 채택 | Accepted | 2026-02-28 |
 | [ADR-007](./007-async-over-sync-experiment.md) | Kafka 비동기 방식 성능 우위 실증 확인 | Accepted | 2026-02-28 |
 | [ADR-008](./008-hpa-cpu-scaling-strategy.md) | CPU 기반 HPA Auto-scaling 전략 채택 | Accepted | 2026-03-01 |
+| [ADR-009](./009-resilience-recovery-strategy.md) | 장애 복구 전략 및 MTTR 최적화 | Accepted | 2026-03-01 |

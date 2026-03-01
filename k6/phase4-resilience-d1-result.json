@@ -1,0 +1,23 @@
+{
+  "test": "Phase 4 Resilience — D-1 Infra Node Failure",
+  "scenario": "d1",
+  "endpoint": "http://localhost:30080/api/v1/coupons/issue",
+  "timestamp": "2026-03-01T09:04:53.071Z",
+  "vus_max": 3000,
+  "total_requests": 122272,
+  "rps": "191.18",
+  "latency": {
+    "avg": "14638.23ms",
+    "p50": "N/A",
+    "p90": "15001.36ms",
+    "p95": "15002.23ms",
+    "p99": "N/A",
+    "max": "30009.06ms"
+  },
+  "coupons_issued": 6939,
+  "coupons_duplicate": 660,
+  "coupons_sold_out": 0,
+  "coupons_rate_limited": 0,
+  "errors": 114673,
+  "success_rate": "6.21%"
+}

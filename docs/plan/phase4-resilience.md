@@ -136,10 +136,14 @@ affinity:
 ---
 
 ## Phase 4 완료 기준
+- [x] k6 장애 복구 시나리오 작성 (`k6/phase4-resilience.js`)
+- [x] 실험 실행 스크립트 작성 (`k8s/run-experiment-d.sh`)
+- [x] Spring Boot reconnection 설정 추가 (`application.yaml`)
+- [x] ADR-009 장애 복구 전략 작성
 - [ ] 시나리오 D-1, D-2 각 3회 실행
 - [ ] PV/PVC 기반 데이터 유실 0건 검증
 - [ ] V자형 회복 곡선 Grafana 캡처 획득
 - [ ] MTTR 수치 측정 완료
 - [ ] Spring Boot 자동 재연결 확인
 - [ ] 발급 데이터 무손실 증빙 (장애 전/후 발급 건수 대조 리포트)
-- [ ] 결과 리포트 작성 완료
+- [ ] 결과 리포트 작성 완료 (`docs/reports/phase4/experiment-d-report.md`)
